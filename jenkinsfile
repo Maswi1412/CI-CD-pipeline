@@ -1,0 +1,48 @@
+pipeline {
+    agent any
+    
+    tools{
+     maven 'maven3'
+    }
+    
+    stages {
+        stage('GIT') {
+            steps {
+                echo 'Cloning GIT'
+                git branch: 'main', url: 'https://github.com/Maswi1412/mindcircuit15d.git'
+            }
+        }
+        stage('sonarqube scan') {
+            steps {
+                echo 'scanning project'
+                sh 'ls -ltr'
+                sh '''mvn sonar:sonar\\
+                    -Dsonar.host.url=http://52.87.173.85:9000\\
+                    -Dsonar.login=sqa_9d2e07c9bb139020d0661b863d0c4e9bd99bfd75'''
+            }
+        }
+        stage('Build ARTIFACT') {
+            steps {
+                echo 'Build Artifact'
+                sh 'mvn clean package'
+            }
+        }
+       stage('Build Docker image') {
+            steps {
+                echo 'Build docker image'
+                sh 'docker build -t aswini1412/project1:${BUILD_NUMBER} .'
+            }
+        }
+        stage('push to Docker hub') {
+            steps {
+              script{
+                withCredentials([string(credentialsId: 'dockerhub', variable: 'dockerhub')]) {
+                 sh 'docker login -u aswini1412 -p ${dockerhub}'
+            }
+                 sh 'docker push aswini1412/project1:${BUILD_NUMBER}'
+                echo 'docker push is done'
+               }
+            }
+        }
+    }
+}
